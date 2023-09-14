@@ -1,30 +1,33 @@
 import json
 import csv
-import datetime 
+import datetime
 
-with open("..user/Home/Location.json") as f: # define absolute path with location of json file
-    loc_data = json.load(f)
+def load_location_data(filepath):
+    with open(filepath, 'r') as f:
+        return json.load(f)["locations"]
 
-in_list = loc_data["locations"] # dictionary value specific to Google output
+def format_location_data(locations):
+    formatted_data = []
+    for loc in locations:
+        lat = float(loc["latitudeE7"]) * .0000001
+        lng = float(loc["longitudeE7"]) * .0000001
+        time = datetime.datetime.fromtimestamp(int(loc["timestampMs"]) / 1000).strftime('%Y-%m-%d %H:%M:%S')
+        formatted_data.append((lat, lng, time))
+    return formatted_data
 
-def lat_long(lst):
-    lat = [d["latitudeE7"] for d in in_list]
-    lat_dec = [(float(i) * .0000001) for i in lat] # adjust decimal place for proper coordinate format
-    lng = [d["longitudeE7"] for d in in_list ] 
-    long_dec = [(float(i) * .0000001) for i in lng] # adjust decimal place for proper coordinate format
-    time = [d["timestampMs"]  for d in in_list] 
-    new_time = []
-    for i in time:
-        i = datetime.datetime.fromtimestamp(int(i)/1000).strftime('%Y-%m-%d %H:%M:%S') 
-        new_time.append(i)
+def write_to_csv(data, outfile):
+    with open(outfile, "w", newline='') as output:
+        writer = csv.writer(output)
+        writer.writerow(["Latitude", "Longitude", "Time"])
+        writer.writerows(data)
 
-    return  list(zip(lat_dec,long_dec,new_time))
+def main():
+    json_filepath = "../user/Home/Location.json"
+    csv_filepath = "user/Home/loc_data.csv"
+    
+    location_data = load_location_data(json_filepath)
+    formatted_data = format_location_data(location_data)
+    write_to_csv(formatted_data, csv_filepath)
 
-zip_list = (lat_long(in_list))
-
-outfile = ("user/Home/loc_data.csv")
-
-with open(outfile, "w") as output:
-    writer = csv.writer(output, lineterminator='\n')
-    writer.writerow(["Latitude", "Longitude", "Time"])
-    writer.writerows(zip_list)
+if __name__ == '__main__':
+    main()
